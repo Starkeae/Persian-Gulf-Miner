@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Persian Gulf Miner</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(to bottom right, #c1f0f6, #0077b6);
+      color: #fff;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .counter {
+      font-size: 2rem;
+      margin: 20px 0;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      background-color: #fff;
+      color: #0077b6;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:active {
+      background-color: #d0f0ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Persian Gulf Miner</h1>
+  <div class="counter" id="counter">Persian Gulf Coins: 0</div>
+  <button onclick="mineCoin()">Mine Persian Gulf Coin</button>  <script>
+    let coins = parseInt(localStorage.getItem('pgCoins')) || 0;
+    const counter = document.getElementById('counter');
+
+    function updateCounter() {
+      counter.textContent = `Persian Gulf Coins: ${coins}`;
+    }
+
+    function mineCoin() {
+      coins++;
+      localStorage.setItem('pgCoins', coins);
+      updateCounter();
+    }
+
+    window.onload = () => {
+      updateCounter();
+      if (window.Telegram?.WebApp) {
+        Telegram.WebApp.expand();
+      }
+    };
+  </script></body>
+</html>
