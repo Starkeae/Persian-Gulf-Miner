@@ -1,49 +1,50 @@
-<!DOCTYPE html><html lang="fa">
+<!-- index.html --><!DOCTYPE html><html lang="fa">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Persian Gulf Miner</title>
   <style>
     body {
-      font-family: sans-serif;
+      background-color: #000;
+      color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
       margin: 0;
-      background-color: #000;
-      color: #fff;
-      overflow: hidden;
+      font-family: 'Papyrus', fantasy;
     }
     .counter {
-      font-size: 2.5rem;
-      margin: 30px 0;
+      font-size: 3rem;
+      margin: 20px;
+      color: gold;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
     }
     .coin-button {
-      background: none;
+      position: relative;
       border: none;
+      background: none;
       cursor: pointer;
       outline: none;
-      position: relative;
     }
     .coin-button img {
       width: 300px;
       height: 300px;
-      transition: transform 0.1s ease, box-shadow 0.2s ease;
       border-radius: 50%;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
     }
     .coin-button:active img {
       transform: scale(0.95);
-      box-shadow: 0 0 40px 10px gold;
+      box-shadow: 0 0 60px 15px rgba(255, 215, 0, 0.8);
     }
     .burst {
       position: absolute;
       width: 20px;
       height: 20px;
-      background: gold;
+      background: radial-gradient(circle, gold, orange);
       border-radius: 50%;
-      animation: burst 0.6s ease-out forwards;
+      animation: burst 0.8s ease-out forwards;
       opacity: 0.9;
       pointer-events: none;
     }
@@ -57,35 +58,81 @@
         opacity: 0;
       }
     }
+    .wallet {
+      margin-top: 20px;
+      font-size: 1rem;
+    }
+    .leaderboard {
+      margin-top: 30px;
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+      font-family: sans-serif;
+    }
   </style>
 </head>
 <body>
-  <div class="counter" id="counter">0</div>
+  <div class="counter" id="counter">٠</div>
   <button class="coin-button" onclick="mineCoin(event)">
     <img src="coin.png" alt="Persian Gulf Coin">
   </button>
-  <audio id="clickSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_b43e216aa7.mp3"></audio>  <script>
-    let coins = parseInt(localStorage.getItem('pgCoins')) || 0;
-    const counter = document.getElementById('counter');
-    const clickSound = document.getElementById('clickSound');
-    const button = document.querySelector('.coin-button');
+  <div class="wallet">
+    <input type="text" id="wallet" placeholder="TON Wallet Address" style="width: 200px;">
+  </div>
+  <div class="leaderboard" id="leaderboard"></div>  <script>
+    let coins = 0;
+    let user = {};
 
-    function updateCounter() {
-      counter.textContent = coins;
+    async function getTelegramUser() {
+      if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.expand();
+        const unsafe = Telegram.WebApp.initDataUnsafe;
+        user = {
+          id: unsafe.user?.id,
+          username: unsafe.user?.username || "guest",
+          first_name: unsafe.user?.first_name || "Guest"
+        };
+      } else {
+        user = { id: Math.random(), username: "guest" };
+      }
     }
 
-    function mineCoin(e) {
+    async function mineCoin(e) {
       coins++;
-      localStorage.setItem('pgCoins', coins);
       updateCounter();
-      clickSound.currentTime = 0;
-      clickSound.play();
       createBurst(e);
+      await updateServer();
+    }
+
+    function updateCounter() {
+      document.getElementById('counter').textContent = toPersianAncient(coins);
+    }
+
+    function toPersianAncient(num) {
+      const ancientDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+      return String(num).split('').map(d => ancientDigits[+d] || d).join('');
+    }
+
+    async function updateServer() {
+      const wallet = document.getElementById('wallet').value;
+      await fetch('/api/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, username: user.username, coins, wallet })
+      });
+      loadLeaderboard();
+    }
+
+    async function loadLeaderboard() {
+      const res = await fetch('/api/leaderboard');
+      const data = await res.json();
+      const list = data.map(u => `${u.username}: ${toPersianAncient(u.coins)}`).join('<br>');
+      document.getElementById('leaderboard').innerHTML = `<h3>Top Miners</h3>${list}`;
     }
 
     function createBurst(e) {
-      const rect = button.getBoundingClientRect();
-      for (let i = 0; i < 6; i++) {
+      const button = e.currentTarget;
+      for (let i = 0; i < 8; i++) {
         const burst = document.createElement('div');
         burst.className = 'burst';
         const x = (Math.random() - 0.5) * 300;
@@ -95,15 +142,13 @@
         burst.style.left = '150px';
         burst.style.top = '150px';
         button.appendChild(burst);
-        setTimeout(() => burst.remove(), 600);
+        setTimeout(() => burst.remove(), 800);
       }
     }
 
-    window.onload = () => {
-      updateCounter();
-      if (window.Telegram?.WebApp) {
-        Telegram.WebApp.expand();
-      }
+    window.onload = async () => {
+      await getTelegramUser();
+      loadLeaderboard();
     };
   </script></body>
 </html>
