@@ -1,154 +1,91 @@
-<!-- index.html --><!DOCTYPE html><html lang="fa">
+<!DOCTYPE html><html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Persian Gulf Miner</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Persian Gulf Coins</title>
   <style>
     body {
+      margin: 0;
+      padding: 0;
       background-color: #000;
-      color: #fff;
+      color: gold;
+      font-family: serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: 0;
-      font-family: 'Papyrus', fantasy;
     }
-    .counter {
-      font-size: 3rem;
-      margin: 20px;
-      color: gold;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
-    }
-    .coin-button {
-      position: relative;
-      border: none;
-      background: none;
+    #coin {
+      width: 250px;
       cursor: pointer;
-      outline: none;
+      transition: transform 0.1s ease-in-out;
     }
-    .coin-button img {
-      width: 300px;
-      height: 300px;
-      border-radius: 50%;
-      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    #coin:active {
+      transform: scale(1.1) rotate(5deg);
     }
-    .coin-button:active img {
-      transform: scale(0.95);
-      box-shadow: 0 0 60px 15px rgba(255, 215, 0, 0.8);
-    }
-    .burst {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background: radial-gradient(circle, gold, orange);
-      border-radius: 50%;
-      animation: burst 0.8s ease-out forwards;
-      opacity: 0.9;
-      pointer-events: none;
-    }
-    @keyframes burst {
-      0% {
-        transform: scale(1) translate(0, 0);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(0.5) translate(var(--x), var(--y));
-        opacity: 0;
-      }
-    }
-    .wallet {
+    #counter {
+      font-size: 48px;
       margin-top: 20px;
-      font-size: 1rem;
+      font-weight: bold;
     }
-    .leaderboard {
-      margin-top: 30px;
-      max-height: 200px;
-      overflow-y: auto;
-      text-align: left;
-      font-family: sans-serif;
+    #walletBtn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    #walletBtn img {
+      width: 32px;
     }
   </style>
 </head>
 <body>
-  <div class="counter" id="counter">٠</div>
-  <button class="coin-button" onclick="mineCoin(event)">
-    <img src="coin.png" alt="Persian Gulf Coin">
+  <button id="walletBtn" onclick="connectWallet()">
+    <img src="https://cdn-icons-png.flaticon.com/512/4128/4128176.png" alt="Wallet">
   </button>
-  <div class="wallet">
-    <input type="text" id="wallet" placeholder="TON Wallet Address" style="width: 200px;">
-  </div>
-  <div class="leaderboard" id="leaderboard"></div>  <script>
+  <img id="coin" src="coin.png" alt="Coin">
+  <div id="counter">0</div>  <script>
     let coins = 0;
-    let user = {};
+    const counter = document.getElementById('counter');
+    const coinImg = document.getElementById('coin');
+    const userId = localStorage.getItem('pg-user-id') || crypto.randomUUID();
+    localStorage.setItem('pg-user-id', userId);
 
-    async function getTelegramUser() {
-      if (window.Telegram && Telegram.WebApp) {
-        Telegram.WebApp.expand();
-        const unsafe = Telegram.WebApp.initDataUnsafe;
-        user = {
-          id: unsafe.user?.id,
-          username: unsafe.user?.username || "guest",
-          first_name: unsafe.user?.first_name || "Guest"
-        };
-      } else {
-        user = { id: Math.random(), username: "guest" };
+    async function loadData() {
+      const res = await fetch('/data.json');
+      const data = await res.json();
+      const user = data.find(u => u.id === userId);
+      if (user) {
+        coins = user.coins;
+        updateDisplay();
       }
     }
 
-    async function mineCoin(e) {
-      coins++;
-      updateCounter();
-      createBurst(e);
-      await updateServer();
+    function updateDisplay() {
+      counter.innerHTML = `${coins.toLocaleString('fa-IR')} سکه`;
     }
 
-    function updateCounter() {
-      document.getElementById('counter').textContent = toPersianAncient(coins);
-    }
-
-    function toPersianAncient(num) {
-      const ancientDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-      return String(num).split('').map(d => ancientDigits[+d] || d).join('');
-    }
-
-    async function updateServer() {
-      const wallet = document.getElementById('wallet').value;
+    async function saveData() {
       await fetch('/api/update', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: user.id, username: user.username, coins, wallet })
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id: userId, username: '', coins, wallet: '' })
       });
-      loadLeaderboard();
     }
 
-    async function loadLeaderboard() {
-      const res = await fetch('/api/leaderboard');
-      const data = await res.json();
-      const list = data.map(u => `${u.username}: ${toPersianAncient(u.coins)}`).join('<br>');
-      document.getElementById('leaderboard').innerHTML = `<h3>Top Miners</h3>${list}`;
+    coinImg.addEventListener('click', async () => {
+      coins++;
+      updateDisplay();
+      saveData();
+    });
+
+    function connectWallet() {
+      alert("Wallet connection coming soon. For now, imagine it's linked.");
     }
 
-    function createBurst(e) {
-      const button = e.currentTarget;
-      for (let i = 0; i < 8; i++) {
-        const burst = document.createElement('div');
-        burst.className = 'burst';
-        const x = (Math.random() - 0.5) * 300;
-        const y = (Math.random() - 0.5) * 300;
-        burst.style.setProperty('--x', `${x}px`);
-        burst.style.setProperty('--y', `${y}px`);
-        burst.style.left = '150px';
-        burst.style.top = '150px';
-        button.appendChild(burst);
-        setTimeout(() => burst.remove(), 800);
-      }
-    }
-
-    window.onload = async () => {
-      await getTelegramUser();
-      loadLeaderboard();
-    };
+    loadData();
   </script></body>
 </html>
